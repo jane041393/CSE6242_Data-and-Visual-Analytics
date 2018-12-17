@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+	.counties {
+  	fill: none;
+	}
+
+	.states {
+  	fill: none;
+  	stroke: #fff;
+  	stroke-linejoin: round;
+	}
+
+	
+</style>
+<body>
+	<script src="../lib/d3.v3.min.js"></script>
+	<script src="../lib/topojson.v1.min.js"></script>
+	<script src="../lib/d3-queue.v3.min.js"></script>
+	<script src="../lib/d3.tip.v0.6.3.js"></script>
+	<script src="../lib/topojson.v1.min.js"></script>
+	<script>
+		var width = 1200;
+		var height = 600;
+
+		var svg = d3.select("body")
+			.append("svg")
+			.attr("width",width)
+			.attr("height",height)
+
+		var path = d3.geo.path();
+
+		d3.queue()
+			.defer(d3.json, "us.json")
+			.defer(d3.csv, "education.csv")
+			.defer(d3.csv, "education_details.csv")
+			.await(display);
+
+
+		function display(error, us, education, detail){
+	
+
+			var educationByID = {};
+			education.forEach(function(d){
+				educationByID[d.id] = parseInt(d.percent_educated);
+			});
+
+			var detailsById = {};
+			detail.forEach(function(d){
+
+				detailsById[d.id] = [d.qualified_professionals,d.high_school,d.middle_school_or_lower];
+			})
+			console.log(detailsById)
+
+			var countiesById = {};
+			education.forEach(function(d){
+				countiesById[d.id] = [d.name];
+			})
+			//console.log(countiesById);
+
+			var color = d3.scale.threshold()
+				.domain([0,10,20,30,40,50,60,70,80,90])
+				.range(["#ebf5fb",' #d6eaf8 ',' #aed6f1 ',' #85c1e9 ',' #5dade2 ',' #3498db ',' #2e86c1 ',' #2874a6 ',' #21618c ','#1b4f72'])
+			
+			var tip = d3.tip()
+				.attr('class','d3-tip')
+				.offset([0,0])
+				.html(function(d){
+	
+					return "<strong>Counties: </strong> <span style='color:red'>" + countiesById[d.id] + "</span> <br></br>" +
+                            "<strong>Qualified_professionals: </strong> <span style='color:red'>" + detailsById[d.id][0]+ "</span><br></br>" +
+                            "<strong>High school: </strong> <span style='color:red'>" + detailsById[d.id][1] + "</span><br></br>" + "<strong>Middle school or lower: </strong> <span style='color:red'>" + detailsById[d.id][2] + "</span><br></br>"
+
+                            ;
+				})
+
+			svg.call(tip);
+			svg.append("g")
+				.attr("class", "counties")
+				.selectAll("path")
+				.data(topojson.feature(us, us.objects.counties).features)
+				.enter()
+				.append("path")
+				.attr("fill",function(d){
+					return color(educationByID[d.id]);
+				})
+				.attr("id",function (d){
+					return d.id;
+				})
+				.attr('d', path)
+				.on('mouseover', tip.show)
+                .on('mouseout', tip.hide);
+				
+
+			var legend = svg.selectAll("g.legend")
+				.data([0,10,20,30,40,50,60,70,80,90])
+				.enter()
+				.append("g")
+				.attr("class","legend");
+
+			legend.append("rect")
+				.attr("x", width-50)
+				.attr("y", function(d,i){return height - (i+2)*20;})
+				.attr("width",20)
+				.attr("height",20)
+				.style("fill", function(d){return color(d);})
+				.style("opacity", 0.8);
+
+			var legend_labels = ["0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%"];
+
+			legend.append("text")
+				.attr("x", width - 100)
+				.attr("y", function(d,i){return height - (i+2)*20 +15;})
+				.text(function(d,i){return legend_labels[i];});
+
+
+		}
+
+
+
+	</script>
+</body>
+</html>

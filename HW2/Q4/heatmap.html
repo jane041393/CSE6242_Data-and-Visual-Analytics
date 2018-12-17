@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<style>
+      p {
+          padding-left: 300px;
+      }
+
+		</style>
+	</head>
+<body>
+<p id="dropdown">House</p>
+<div id="graph"></div>
+<script src="../lib/d3.v3.min.js"></script>
+<script>
+
+	var w = 700;
+	var h = 500; 
+	var gridSize = 50;
+	var padding = 30;
+
+	var House = ["Gryffindor", "Hufflepuff", "Ravenclaw","Slytherin"];
+	var spell_type = ["Charm","Conjuration","Counter Spell","Curse","Healing Spell","Hex","Jinx", "Transfiguration","Spell Type"];
+
+	var book = ["Book","Sorcerers's Stone","Chamber of Secrets","Prisoner of Azkaban","Goblet of Fire","Order of the Phoenix","Half Blood Prince","Deathly Hallows"];
+	
+	var map = d3.map();
+
+	d3.csv("heatmap.csv", function(a){
+		a.forEach(function(d){
+			var arr = [];
+			arr = map.get(d.House) || [];
+			
+			arr.push({"Sorcerer's Stone": +d["Sorcerer's Stone"], "Chamber of Secrets": +d["Chamber of Secrets"], "Prisoner of Azkaban": +d["Prisoner of Azkaban"], "Goblet of Fire": +d["Goblet of Fire"], "Order of the Phoenix": +d["Order of the Phoenix"] , "Half Blood Prince": +d["Half Blood Prince"] , "Deathly Hallows": +d["Deathly Hallows"], "SpellType": d["SpellType"]});
+
+			map.set(d.House, arr);
+		});
+
+		draw(map,"Gryffindor");
+
+		var select = d3.select('#dropdown')
+			.append('select')
+			.attr('class','select')
+			.on('change',onchange);
+
+		var options = select
+			.selectAll('option')
+			.data(House)
+			.enter()
+			.append('option')
+			.text(function(d){return d;});
+
+		function onchange(){
+			selectValue = d3.select('select')
+				.property('value');
+			draw(map,selectValue);
+		};
+
+	});
+
+
+	function draw(map,i){
+		d3.select("svg").remove();
+		var svg = d3.select("#graph")
+			.append("svg")
+			.attr("width",w)
+			.attr("height",h)
+			.append("g");
+
+		var data = map.get(i);		
+
+		var refine_data = process(data);
+
+		//console.log(refine_data);
+
+		var max = d3.max(refine_data, (d) => (d.val));
+		var min = d3.min(refine_data, (d) => (d.val));
+		console.log(max,min);
+
+		var xScale = d3.scale.linear()
+			.domain([0, 7])
+			.range([3*padding, w - 100-padding * 5]);
+
+		var yScale = d3.scale.linear()
+			.domain([0, 6])
+          	.range([25,h - padding -185]);
+
+        //console.log(max);
+       // var colorScale = [" #943126 "," #b03a2e ","#cb4335"," #e74c3c "," #ec7063 "," #f1948a"," #f5b7b1 ","#fadbd8"," #fdedec"]
+       //var colorScale = ["#fff7ec", "#fee8c8", "#fdd49e", "#fdbb84",
+         //     "#fc8d59", "#ef6548", "#d7301f", "#b30000", "#7f0000"];
+        var colorScale = [" #fdedec", "#fadbd8"," #f5b7b1 "," #f1948a"," #ec7063 "," #e74c3c " ,"#cb4335"," #b03a2e "," #943126 "]
+        var color = d3.scale.quantize()
+                      .domain([0, max ])
+                      .range(colorScale);
+
+
+        svg.selectAll("rect")
+        	.data(refine_data)
+        	.enter()
+        	.append("rect")
+        	.attr("x", function(d){
+        		//console.log(d.SpellType)
+        		return xScale(d.SpellType);})
+        	.attr("y",function(d){
+        		//console.log(d.num);
+        		return yScale(d.num);})
+        	.attr("width", gridSize)
+        	.attr("height", gridSize)
+        	.style("fill",function(d){return color(d.val);});
+
+
+
+        svg.selectAll("text.rotate")
+        	.data(spell_type)
+        	.enter()
+        	.append("text")
+        	.text(function(d){return d;})
+        	.classed('rotation',true)
+        	
+        	.attr("transform", function(d,i) {return "translate("+( 170+ i * (gridSize))+"," +390+"),"+ "rotate(60)";})
+
+        	.style("font-size", "13px")
+        	.style("text-anchor", "start");
+
+
+        svg.selectAll("label")
+        	.data(book)
+        	.enter()
+        	.append("text")
+        	.text(function(d,i){return d;})
+        	.attr("x", 130)
+        	.attr("y", function(d,i){return 45 + i * (gridSize-5) ; })
+        	.style("font-size", "13px")
+        	.style("text-anchor", "end");
+
+
+        svg.selectAll(".legend")
+        	.data(colorScale)
+        	.enter()
+        	.append("g")
+        	.attr("class","legend")
+        	.attr("transform", function(d,i){
+        		return "translate("  + (150 + i * 40) + ","+ 450 +")";
+        	})
+        	.attr("fill",function(d){return d;})
+        	.append("rect")
+        	.attr("width", 40)
+          	.attr("height", 20);
+
+
+        svg.selectAll(".legend").append("rect")
+      		.attr("width", 40)
+      		.attr("height", 20)
+      		.style("fill", color);
+      	var form = d3.format(".0f");
+
+  		svg.selectAll(".legend").append("text")
+      		.attr("x", 25)
+      		.attr("y", 40)
+      		.text(function(d) {
+               return form(color.invertExtent(d)[0]);
+           	});
+
+        svg.append("text")
+      		.attr("class", "label")
+      		.attr("x", 2*padding)
+      		.attr("y", 450)
+      		.attr("dy", ".35em")
+      		.attr("font-size","15px")
+      		.text("No. of spells");
+
+
+  		svg.append("text")
+    		.attr("x", function(d) {return 150; })
+     		.attr("y", function(d) {return 30; })
+     		.attr("font-size","25px")
+     		.text("Vizualizing Wizarding House and Spells");
+
+	}
+
+	function process(data){
+		var refine_data= [];
+		for(var i=0; i < data.length;i++){
+			var arr = data[i];
+			var type;
+			//console.log(data[i]);
+			if(data[i].SpellType == "Charm") type = 1;
+			if(data[i].SpellType == "Conjuration") type = 2;
+			if(data[i].SpellType == "Counter Spell") type = 3;
+			if(data[i].SpellType == "Curse") type = 4;
+			if(data[i].SpellType == "Healing Spell") type = 5;
+			if(data[i].SpellType == "Hex") type = 6;
+			if(data[i].SpellType == "Jinx") type = 7;
+			if(data[i].SpellType == "Transfiguration") type = 8;
+
+			refine_data.push({SpellType: type, num:1, val: +data[i]["Sorcerer's Stone"] });
+			refine_data.push({SpellType: type, num:2, val: +data[i]["Chamber of Secrets"] });
+			refine_data.push({SpellType: type, num:3, val: +data[i]["Prisoner of Azkaban"] });
+			refine_data.push({SpellType: type, num:4, val: +data[i]["Goblet of Fire"] });
+			refine_data.push({SpellType: type, num:5, val: +data[i]["Order of the Phoenix"] });
+			refine_data.push({SpellType: type, num:6, val: +data[i]["Half Blood Prince"] });
+			refine_data.push({SpellType: type, num:7, val: +data[i]["Deathly Hallows"] });
+
+		}
+		//console.log(refine_data)
+		return refine_data;
+	}
+
+</script>
+</body>
+</html>

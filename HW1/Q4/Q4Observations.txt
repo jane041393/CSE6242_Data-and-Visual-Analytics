@@ -1,0 +1,1 @@
+c.i.  value.replace('M','0').replace('F','1')c.ii. if(isNull(value), "0", value)c.iii. value.replace(’55+’,’56-100’)c.iv. if(toNumber(value)> 1000, '1','0')c.v. 305, P00025442

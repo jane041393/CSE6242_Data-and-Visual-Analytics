@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<script src="../lib/d3.v3.min.js"></script>
+		<script>
+			var data = [
+				{city: 'San Antonio', population_2012: 1383505, growth: {year_2013:25405, year_2014:26644 , year_2015:28593 , year_2016:23591 , year_2017:24208}},
+				{city: 'New York', population_2012: 8383504, growth: {year_2013:75138 , year_2014:62493 , year_2015:61324 , year_2016:32967 , year_2017:7272}},
+				{city: 'Chicago', population_2012: 2717989, growth: {year_2013:6493 , year_2014:2051 , year_2015:-1379 , year_2016:-4879 , year_2017:-3825}},
+				{city: 'Los Angeles', population_2012: 3859267, growth:{year_2013:32516 , year_2014:30885 , year_2015:30791 , year_2016:27657 , year_2017:18643}},
+				{city: 'Phoenix', population_2012: 1495880, growth: {year_2013:25302 , year_2014:26547 , year_2015:27310 , year_2016:27003 , year_2017:24036}}
+			];
+		</script>
+
+		</head>
+
+<body>
+<div></div>
+<h2 style="width: 100%; height: 50%; clear:both"></h2>
+<div id="graph"  style="width: 50%;  float:left;"></div>
+<div id="graph2" style="width: 50%;  float:right;"></div>
+
+<script>
+	var width = 800, h=25;
+	var height = 300;
+	var sum = [];
+	var index = 0;
+	
+
+  	//console.log(data[1].population_2012);
+
+  	var total_population = [];
+  	var count = 0;
+  	for (var i in data){
+  		//console.log(data[count1])
+  		total_population[count] = data[count].population_2012
+
+  		Object.keys(data[count].growth).forEach(function(key) {
+			total_population[count] += data[count].growth[key]
+    		//console.log(data[count1].growth[key]);
+		});
+		data[count].population_2012 = total_population[count];
+		count++;
+  	}
+//  	console.log(data[0].population_2012)	
+
+	var x = d3.scale.linear()
+		.domain([0,d3.max(data,function(d){
+			return d.max
+		})])
+		.range([0,500]);
+
+		data.sort(function(a, b) {
+    	return d3.descending(a.population_2012, b.population_2012)
+  	})
+  	x.domain(data.map(function(d) {
+    	return d.population_2012;
+  	}));
+
+
+
+
+	var svg = d3.select("#graph")
+		.append("svg")
+		.attr("width", width)
+		.attr("height", height);
+
+	var bar = svg.selectAll(".bar")
+		.data(data)
+		.enter().append("g")
+		.attr("transform", function(d, i){
+			return "translate(150," + h * i + ")";
+		});
+
+	bar.append("rect")
+		.attr("width", function(d){
+			return d.population_2012 / 10000.0;
+		})
+		.attr("height", h-4)
+		.attr("fill","#f5b7b1")
+		.on("mouseover",mouse_on)
+		.on("mouseout",off);
+	var formatComma = d3.format(",");	
+
+	bar.append("text")
+		.attr("font-size","13px")
+		.attr("x", 30)
+		.attr("y", 11)
+		.text(function(d){
+			return formatComma(d.population_2012);
+		});
+	
+	bar.append("text")
+		.attr("x",-110)
+		.attr("y",15)
+		.attr("font-size","15px")
+		.text(function(d){
+			return d.city;
+		});
+
+function mouse_on(data){
+	d3.select(this).attr({
+		fill:  "#d2b4de" ,
+		});
+	display(data.population_2012, data.growth)
+}
+
+function off(){
+	d3.selectAll(".sub").remove();
+	//d3.selectAll(".graph2").remove();
+	d3.select(this).attr({
+		fill: "#f5b7b1",
+	});
+}
+
+function get_data(total,set){
+	var data_total=[]
+	var data_growth=[]
+	var data_rate=[]
+	var num = 0;
+	var data_temp = []
+	//console.log(total);
+	Object.keys(set).forEach(function(key) {
+		if(set.hasOwnProperty(key)){
+			data_temp[num] = set[key];
+			data_growth[num] = [(num+2013) , set[key]]
+    		// console.log(key, set[key]);
+    		num++;
+    	}
+	});
+	//console.log(data_temp);
+	for(var i =0; i < data_growth.length;i++){
+		if(i==0){
+			data_total[i] = total; 
+
+		}
+		else{
+			data_total[i] = data_total[i-1] + data_temp[i-1]; 
+		}
+		console.log(data_total[i]);
+	}
+	//console.log(data_total);
+	num=0;
+	for(var i =0;i < data_growth.length;i++){
+		data_rate[num] = [ (num+2013), (data_temp[i]/data_total[i])*100 ]
+		num ++;
+	//	console.log(data_temp[i]);
+	//	console.log(data_total[i]);
+	//	console.log(data_rate[i]);
+	}
+		//console.log(data_rate);
+
+	return data_rate;
+}
+
+
+function display(total_pop,set){
+	var data = [];
+
+
+	data = get_data(total_pop,set);
+
+
+
+	var x = 200;
+	var y = 10;
+
+	var show = d3.select("#graph2").append("svg")
+		.attr("class", "sub")
+		.attr("width", 600)
+		.attr("height", 600)
+		.append("g")
+		.attr("transform","translate("+250+","+20+")");
+
+	var xScale = d3.scale.linear()
+		.domain([ d3.min(data, function(d){return d[0];}) , d3.max(data, function(d){return d[0];})])
+		.range([0,200]);
+
+	var yScale = d3.scale.linear()
+		.domain([ d3.min(data,function(d){ return d[1];}) ,d3.max(data,function(d){ return d[1];})])
+		.range([200,0]);
+
+	var xAxis = d3.svg.axis().scale(xScale)
+				.ticks(d3.max(data, function(d){ return d[0].length;}))
+				.orient("buttom").tickSize(2)
+				.tickFormat(d3.format("d"));
+	var yAxis = d3.svg.axis().scale(yScale)
+			.ticks(10)
+			.orient("left").tickSize(2);
+
+	var line = d3.svg.line()
+		.x(function(d){return xScale(d[0]);})
+		.y(function(d){return yScale(d[1]);});
+
+
+
+
+	show.append("path")
+		.attr("d", line(data))
+		.style("stroke", "green")
+		.style("fill","none");
+
+	show.append("g")
+		.attr("transform", "translate("+ 0 + "," + 200 + ")")
+		.call(xAxis)
+		.attr("font-size","15px")
+
+
+	show.append("g")
+		.call(yAxis);
+
+//x label
+	show.append("text")
+		.attr("x",150)
+		.attr("y",190)
+		.attr("font-size","15px")
+		.text("Year");
+
+//y label
+	show.append("text")
+		.attr("x", 5)
+		.attr("y", 5)	
+		.attr("font-size","15px")
+		.text("Pct%");
+
+
+}
+
+
+</script>
+
+
+
+
+
+
+
+
+
+</html>

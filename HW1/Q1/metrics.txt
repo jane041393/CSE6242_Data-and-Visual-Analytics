@@ -1,0 +1,1 @@
+Average node Degree: 1.566	In average, every node has 1.566 edges. The relationship between a movie’s similar movie has less relationship.Diameter of the graph: 10	There are 10 degree to go from node to node.Average Path length:   2.757	It is  2.757 relationships between every node.
